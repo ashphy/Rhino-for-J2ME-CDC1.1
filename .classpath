@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="test"/>
+	<classpathentry kind="lib" path="lib/btclasses.zip"/>
+	<classpathentry kind="lib" path="lib/dsdk.jar"/>
+	<classpathentry kind="lib" path="lib/foundation.jar"/>
+	<classpathentry kind="lib" path="lib/Framework_V2.0.3.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

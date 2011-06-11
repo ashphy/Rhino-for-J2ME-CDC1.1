@@ -40,8 +40,8 @@
 
 package org.mozilla.javascript;
 
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import jp.naist.ricoh2011jp.mandara.javabeans.PropertyChangeEvent;
+import jp.naist.ricoh2011jp.mandara.javabeans.PropertyChangeListener;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.PrintWriter;

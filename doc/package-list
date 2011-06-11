@@ -1,10 +1,1 @@
-org.mozilla.classfile
-org.mozilla.javascript
-org.mozilla.javascript.continuations
-org.mozilla.javascript.debug
-org.mozilla.javascript.jdk11
-org.mozilla.javascript.jdk13
-org.mozilla.javascript.optimizer
-org.mozilla.javascript.regexp
-org.mozilla.javascript.serialize
-org.mozilla.javascript.xml
+jp.naist.ricoh2011jp.mandara.javabeans

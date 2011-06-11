@@ -49,7 +49,7 @@ final class NativeMath extends IdScriptableObject
 {
     static final long serialVersionUID = -8838847185801131569L;
 
-    private static final Object MATH_TAG = "Math";
+    private static final Object MATH_TAG = new Object();
 
     static void init(Scriptable scope, boolean sealed)
     {
@@ -66,10 +66,8 @@ final class NativeMath extends IdScriptableObject
     {
     }
 
-    @Override
     public String getClassName() { return "Math"; }
 
-    @Override
     protected void initPrototypeId(int id)
     {
         if (id <= LAST_METHOD_ID) {
@@ -117,7 +115,6 @@ final class NativeMath extends IdScriptableObject
         }
     }
 
-    @Override
     public Object execIdCall(IdFunctionObject f, Context cx, Scriptable scope,
                              Scriptable thisObj, Object[] args)
     {
@@ -266,7 +263,7 @@ final class NativeMath extends IdScriptableObject
             // Java's pow(NaN, 0) = NaN; we need 1
             result = 1.0;
         } else if (x == 0) {
-            // Many differences from Java's Math.pow
+            // Many dirrerences from Java's Math.pow
             if (1 / x > 0) {
                 result = (y > 0) ? 0 : Double.POSITIVE_INFINITY;
             } else {
@@ -313,7 +310,6 @@ final class NativeMath extends IdScriptableObject
 
 // #string_id_map#
 
-    @Override
     protected int findPrototypeId(String s)
     {
         int id;

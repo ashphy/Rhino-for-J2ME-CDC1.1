@@ -14,11 +14,11 @@
  * License.
  *
  * The Original Code is Rhino code, released
- * May 6, 1998.
+ * May 6, 1999.
  *
  * The Initial Developer of the Original Code is
  * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1997-1999
+ * Portions created by the Initial Developer are Copyright (C) 1997-2000
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -35,41 +35,50 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-package org.mozilla.javascript.regexp;
+package org.mozilla.javascript.jdk11;
 
-class SubString {
+import java.lang.reflect.Member;
+import java.util.Hashtable;
 
-    public SubString()
+import org.mozilla.javascript.*;
+
+public class VMBridge_jdk11 extends VMBridge
+{
+    private Hashtable threadsWithContext = new Hashtable();
+
+    protected Object getThreadContextHelper()
     {
+        return Thread.currentThread();
     }
 
-    public SubString(String str)
+    protected Context getContext(Object contextHelper)
     {
-        index = 0;
-        charArray = str.toCharArray();
-        length = str.length();
+        Thread t = (Thread)contextHelper;
+        return (Context)threadsWithContext.get(t);
     }
 
-    public SubString(char[] source, int start, int len)
+    protected void setContext(Object contextHelper, Context cx)
     {
-    // there must be a better way of doing this??
-        index = 0;
-        length = len;
-        charArray = new char[len];
-        for (int j = 0; j < len; j++)
-            charArray[j] = source[start + j];
+        Thread t = (Thread)contextHelper;
+        if (cx == null) {
+            // Allow to garbage collect thread reference
+            threadsWithContext.remove(t);
+        } else {
+            threadsWithContext.put(t, cx);
+        }
     }
 
-    public String toString() {
-        return charArray == null
-               ? ""
-               : new String(charArray, index, length);
+    protected ClassLoader getCurrentThreadClassLoader()
+    {
+        return null;
     }
 
-    static final SubString emptySubString = new SubString();
-
-    char[] charArray;
-    int    index;
-    int    length;
+    protected boolean tryToMakeAccessible(Object accessibleObject)
+    {
+        return false;
+    }
+    
+    protected boolean isVarArgs(Member member) {
+      return false;
+    }
 }
-

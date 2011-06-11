@@ -39,7 +39,7 @@
 package org.mozilla.javascript.optimizer;
 
 import org.mozilla.javascript.*;
-import java.util.Map;
+import java.util.Hashtable;
 
 /**
  * This class performs node transforms to prepare for optimization.
@@ -50,19 +50,17 @@ import java.util.Map;
 
 class OptTransformer extends NodeTransformer {
 
-    OptTransformer(Map<String,OptFunctionNode> possibleDirectCalls, ObjArray directCallTargets)
+    OptTransformer(Hashtable possibleDirectCalls, ObjArray directCallTargets)
     {
         this.possibleDirectCalls = possibleDirectCalls;
         this.directCallTargets = directCallTargets;
     }
 
-    @Override
     protected void visitNew(Node node, ScriptOrFnNode tree) {
         detectDirectCall(node, tree);
         super.visitNew(node, tree);
     }
 
-    @Override
     protected void visitCall(Node node, ScriptOrFnNode tree) {
         detectDirectCall(node, tree);
         super.visitCall(node, tree);
@@ -103,12 +101,10 @@ class OptTransformer extends NodeTransformer {
                     targetName = left.getString();
                 } else if (left.getType() == Token.GETPROP) {
                     targetName = left.getFirstChild().getNext().getString();
-                } else if (left.getType() == Token.GETPROPNOWARN) {
-                    throw Kit.codeBug();
                 }
                 if (targetName != null) {
                     OptFunctionNode ofn;
-                    ofn = possibleDirectCalls.get(targetName);
+                    ofn = (OptFunctionNode)possibleDirectCalls.get(targetName);
                     if (ofn != null
                         && argCount == ofn.fnode.getParamCount()
                         && !ofn.fnode.requiresActivation())
@@ -130,6 +126,6 @@ class OptTransformer extends NodeTransformer {
         }
     }
 
-    private Map<String,OptFunctionNode> possibleDirectCalls;
+    private Hashtable possibleDirectCalls;
     private ObjArray directCallTargets;
 }

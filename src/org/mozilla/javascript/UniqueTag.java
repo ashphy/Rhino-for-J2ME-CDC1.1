@@ -97,7 +97,6 @@ public final class UniqueTag implements Serializable
     }
 
 // Overridden for better debug printouts
-    @Override
     public String toString()
     {
         String name;

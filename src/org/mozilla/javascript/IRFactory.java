@@ -43,9 +43,6 @@
 
 package org.mozilla.javascript;
 
-import java.util.List;
-import java.util.ArrayList;
-
 /**
  * This class allows the creation of nodes, and follows the Factory pattern.
  *
@@ -80,6 +77,11 @@ final class IRFactory
     Node createLeaf(int nodeType)
     {
         return new Node(nodeType);
+    }
+
+    Node createLeaf(int nodeType, int nodeOp)
+    {
+        return new Node(nodeType, nodeOp);
     }
 
     /**
@@ -214,15 +216,6 @@ final class IRFactory
         checkActivationName(name, Token.NAME);
         return Node.newString(Token.NAME, name);
     }
-    
-    private Node createName(int type, String name, Node child)
-    {
-        Node result = createName(name);
-        result.setType(type);
-        if (child != null)
-            result.addChildToBack(child);
-        return result;
-    }
 
     /**
      * String (for literals)
@@ -275,14 +268,6 @@ final class IRFactory
             : new Node(Token.RETURN, expr, lineno);
     }
 
-    /**
-     * Debugger
-     */
-    Node createDebugger(int lineno)
-    {
-        return new Node(Token.DEBUGGER,  lineno);
-    }
-  
     /**
      * Label
      */
@@ -371,16 +356,32 @@ final class IRFactory
         if (functionCount != 0) {
             // Functions containing other functions require activation objects
             fnNode.itsNeedsActivation = true;
+            for (int i = 0; i != functionCount; ++i) {
+                FunctionNode fn = fnNode.getFunctionNode(i);
+                // nested function expression statements overrides var
+                if (fn.getFunctionType()
+                        == FunctionNode.FUNCTION_EXPRESSION_STATEMENT)
+                {
+                    String name = fn.getFunctionName();
+                    if (name != null && name.length() != 0) {
+                        fnNode.removeParamOrVar(name);
+                    }
+                }
+            }
         }
 
         if (functionType == FunctionNode.FUNCTION_EXPRESSION) {
             String name = fnNode.getFunctionName();
-            if (name != null && name.length() != 0) {
+            if (name != null && name.length() != 0
+                && !fnNode.hasParamOrVar(name))
+            {
                 // A function expression needs to have its name as a
                 // variable (if it isn't already allocated as a variable).
                 // See ECMA Ch. 13.  We add code to the beginning of the
                 // function to initialize a local variable of the
                 // function's name to the function value.
+                if (fnNode.addVar(name) == ScriptOrFnNode.DUPLICATE_CONST)
+                    parser.addError("msg.const.redecl", name);
                 Node setFn = new Node(Token.EXPR_VOID,
                                  new Node(Token.SETNAME,
                                      Node.newString(Token.BINDNAME, name),
@@ -412,25 +413,13 @@ final class IRFactory
     }
 
     /**
-     * Create a node that can be used to hold lexically scoped variable
-     * definitions (via let declarations).
-     * 
-     * @param token the token of the node to create
-     * @param lineno line number of source
-     * @return the created node
-     */
-    Node createScopeNode(int token, int lineno) {
-        return new Node.Scope(token, lineno);
-    }
-
-    /**
      * Create loop node. The parser will later call
      * createWhile|createDoWhile|createFor|createForIn
      * to finish loop generation.
      */
     Node createLoopNode(Node loopLabel, int lineno)
     {
-        Node.Jump result = new Node.Scope(Token.LOOP, lineno);
+        Node.Jump result = new Node.Jump(Token.LOOP, lineno);
         if (loopLabel != null) {
             ((Node.Jump)loopLabel).setLoop(result);
         }
@@ -460,18 +449,8 @@ final class IRFactory
      */
     Node createFor(Node loop, Node init, Node test, Node incr, Node body)
     {
-        if (init.getType() == Token.LET) {
-            // rewrite "for (let i=s; i < N; i++)..." as 
-            // "let (i=s) { for (; i < N; i++)..." so that "s" is evaluated
-            // outside the scope of the for.
-            Node.Scope let = Node.Scope.splitScope((Node.Scope)loop);
-            let.setType(Token.LET);
-            let.addChildrenToBack(init);
-            let.addChildToBack(createLoop((Node.Jump)loop, LOOP_FOR, body, test,
-                new Node(Token.EMPTY), incr));
-            return let;
-        }
-        return createLoop((Node.Jump)loop, LOOP_FOR, body, test, init, incr);
+        return createLoop((Node.Jump)loop, LOOP_FOR, body, test,
+                          init, incr);
     }
 
     private Node createLoop(Node.Jump loop, int loopType, Node body, Node cond,
@@ -504,9 +483,8 @@ final class IRFactory
             loop.addChildToFront(makeJump(Token.GOTO, condTarget));
 
             if (loopType == LOOP_FOR) {
-                int initType = init.getType();
-                if (initType != Token.EMPTY) {
-                    if (initType != Token.VAR && initType != Token.LET) {
+                if (init.getType() != Token.EMPTY) {
+                    if (init.getType() != Token.VAR) {
                         init = new Node(Token.EXPR_VOID, init);
                     }
                     loop.addChildToFront(init);
@@ -530,41 +508,24 @@ final class IRFactory
      * For .. In
      *
      */
-    Node createForIn(int declType, Node loop, Node lhs, Node obj, Node body,
+    Node createForIn(Node loop, Node lhs, Node obj, Node body,
                      boolean isForEach)
     {
-        int destructuring = -1;
-        int destructuringLen = 0;
-        Node lvalue;
         int type = lhs.getType();
-        if (type == Token.VAR || type == Token.LET) {
+
+        Node lvalue;
+        if (type == Token.VAR) {
+            /*
+             * check that there was only one variable given.
+             * we can't do this in the parser, because then the
+             * parser would have to know something about the
+             * 'init' node of the for-in loop.
+             */
             Node lastChild = lhs.getLastChild();
             if (lhs.getFirstChild() != lastChild) {
-                /*
-                 * check that there was only one variable given.
-                 * we can't do this in the parser, because then the
-                 * parser would have to know something about the
-                 * 'init' node of the for-in loop.
-                 */
                 parser.reportError("msg.mult.index");
             }
-            if (lastChild.getType() == Token.ARRAYLIT ||
-                lastChild.getType() == Token.OBJECTLIT)
-            {
-                type = destructuring = lastChild.getType();
-                lvalue = lastChild;
-                destructuringLen = lastChild.getIntProp(
-                    Node.DESTRUCTURING_ARRAY_LENGTH, 0);
-            } else if (lastChild.getType() == Token.NAME) {
-                lvalue = Node.newString(Token.NAME, lastChild.getString());
-            } else {
-                parser.reportError("msg.bad.for.in.lhs");
-                return obj;
-            }
-        } else if (type == Token.ARRAYLIT || type == Token.OBJECTLIT) {
-            destructuring = type;
-            lvalue = lhs;
-            destructuringLen = lhs.getIntProp(Node.DESTRUCTURING_ARRAY_LENGTH, 0);
+            lvalue = Node.newString(Token.NAME, lastChild.getString());
         } else {
             lvalue = makeReference(lhs);
             if (lvalue == null) {
@@ -574,9 +535,9 @@ final class IRFactory
         }
 
         Node localBlock = new Node(Token.LOCAL_BLOCK);
-        int initType = (isForEach)           ? Token.ENUM_INIT_VALUES :
-                       (destructuring != -1) ? Token.ENUM_INIT_ARRAY :
-                                               Token.ENUM_INIT_KEYS;
+
+        int initType = (isForEach) ? Token.ENUM_INIT_VALUES
+                                   : Token.ENUM_INIT_KEYS;
         Node init = new Node(initType, obj);
         init.putProp(Node.LOCAL_BLOCK_PROP, localBlock);
         Node cond = new Node(Token.ENUM_NEXT);
@@ -585,25 +546,13 @@ final class IRFactory
         id.putProp(Node.LOCAL_BLOCK_PROP, localBlock);
 
         Node newBody = new Node(Token.BLOCK);
-        Node assign;
-        if (destructuring != -1) {
-            assign = createDestructuringAssignment(declType, lvalue, id);
-            if (!isForEach && (destructuring == Token.OBJECTLIT ||
-                               destructuringLen != 2))
-            {
-                // destructuring assignment is only allowed in for..each or
-                // with an array type of length 2 (to hold key and value)
-                parser.reportError("msg.bad.for.in.destruct");
-            }
-        } else {
-            assign = simpleAssignment(lvalue, id);
-        }
+        Node assign = simpleAssignment(lvalue, id);
         newBody.addChildToBack(new Node(Token.EXPR_VOID, assign));
         newBody.addChildToBack(body);
 
         loop = createWhile(loop, cond, newBody);
         loop.addChildToFront(init);
-        if (type == Token.VAR || type == Token.LET)
+        if (type == Token.VAR)
             loop.addChildToFront(lhs);
         localBlock.addChildToBack(loop);
 
@@ -822,7 +771,7 @@ final class IRFactory
         return result;
     }
 
-    Node createArrayLiteral(ObjArray elems, int skipCount, int destructuringLen)
+    Node createArrayLiteral(ObjArray elems, int skipCount)
     {
         int length = elems.size();
         int[] skipIndexes = null;
@@ -842,7 +791,6 @@ final class IRFactory
         if (skipCount != 0) {
             array.putProp(Node.SKIP_INDEXES_PROP, skipIndexes);
         }
-        array.putIntProp(Node.DESTRUCTURING_ARRAY_LENGTH, destructuringLen);
         return array;
     }
 
@@ -1000,19 +948,6 @@ final class IRFactory
           }
         }
         return new Node(nodeType, child);
-    }
-
-    Node createYield(Node child, int lineno)
-    {
-      if (!parser.insideFunction()) {
-        parser.reportError("msg.bad.yield");
-      }
-      setRequiresActivation();
-      setIsGenerator();
-      if (child != null)
-        return new Node(Token.YIELD, child, lineno);
-      else
-        return new Node(Token.YIELD, lineno);
     }
 
     Node createCallOrNew(int nodeType, Node child)
@@ -1315,21 +1250,11 @@ final class IRFactory
 
     Node createAssignment(int assignType, Node left, Node right)
     {
-        Node ref = makeReference(left);
-        if (ref == null) {
-            if (left.getType() == Token.ARRAYLIT || 
-                left.getType() == Token.OBJECTLIT)
-            {
-                if (assignType != Token.ASSIGN) {
-                    parser.reportError("msg.bad.destruct.op");
-                    return right;
-                }
-                return createDestructuringAssignment(-1, left, right);
-            }
+        left = makeReference(left);
+        if (left == null) {
             parser.reportError("msg.bad.assign.left");
             return right;
         }
-        left = ref;
 
         int assignOp;
         switch (assignType) {
@@ -1352,8 +1277,11 @@ final class IRFactory
         int nodeType = left.getType();
         switch (nodeType) {
           case Token.NAME: {
-            Node op = new Node(assignOp, left, right);
-            Node lvalueLeft = Node.newString(Token.BINDNAME, left.getString());
+            String s = left.getString();
+
+            Node opLeft = Node.newString(Token.NAME, s);
+            Node op = new Node(assignOp, opLeft, right);
+            Node lvalueLeft = Node.newString(Token.BINDNAME, s);
             return new Node(Token.SETNAME, lvalueLeft, op);
           }
           case Token.GETPROP:
@@ -1370,7 +1298,7 @@ final class IRFactory
             return new Node(type, obj, id, op);
           }
           case Token.GET_REF: {
-            ref = left.getFirstChild();
+            Node ref = left.getFirstChild();
             checkMutableReference(ref);
             Node opLeft = new Node(Token.USE_STACK);
             Node op = new Node(assignOp, opLeft, right);
@@ -1379,130 +1307,6 @@ final class IRFactory
         }
 
         throw Kit.codeBug();
-    }
-    
-    /**
-     * Given a destructuring assignment with a left hand side parsed
-     * as an array or object literal and a right hand side expression,
-     * rewrite as a series of assignments to the variables defined in
-     * left from property accesses to the expression on the right.
-     * @param type declaration type: Token.VAR or Token.LET or -1
-     * @param left array or object literal containing NAME nodes for
-     *        variables to assign
-     * @param right expression to assign from
-     * @return expression that performs a series of assignments to
-     *         the variables defined in left
-     */
-    Node createDestructuringAssignment(int type, Node left, Node right)
-    {
-        String tempName = parser.currentScriptOrFn.getNextTempName();
-        Node result = destructuringAssignmentHelper(type, left, right,
-            tempName);
-        Node comma = result.getLastChild();
-        comma.addChildToBack(createName(tempName));
-        return result;
-    }
-
-    private Node destructuringAssignmentHelper(int variableType, Node left, 
-                                               Node right, String tempName)
-    {
-        Node result = createScopeNode(Token.LETEXPR,
-            parser.getCurrentLineNumber());
-        result.addChildToFront(new Node(Token.LET,
-            createName(Token.NAME, tempName, right)));
-        try {
-            parser.pushScope(result);
-            parser.defineSymbol(Token.LET, true, tempName);
-        } finally {
-            parser.popScope();
-        }
-        Node comma = new Node(Token.COMMA);
-        result.addChildToBack(comma);
-        final int setOp = variableType == Token.CONST ? Token.SETCONST
-        		                                      : Token.SETNAME;
-        List<String> destructuringNames = new ArrayList<String>();
-        boolean empty = true;
-        int type = left.getType();
-        if (type == Token.ARRAYLIT) {
-            int index = 0;
-            int[] skipIndices = (int[])left.getProp(Node.SKIP_INDEXES_PROP);
-            int skip = 0;
-            Node n = left.getFirstChild();
-            for (;;) {
-                if (skipIndices != null) {
-                    while (skip < skipIndices.length && 
-                           skipIndices[skip] == index) {
-                        skip++;
-                        index++;
-                    }
-                }
-                if (n == null)
-                    break;
-                Node rightElem = new Node(Token.GETELEM,
-                    createName(tempName), 
-                    createNumber(index));
-                if (n.getType() == Token.NAME) {
-                    String name = n.getString();
-                    comma.addChildToBack(new Node(setOp, 
-                        createName(Token.BINDNAME, name, null),
-                        rightElem));
-                    if (variableType != -1) {
-                        parser.defineSymbol(variableType, true, name);
-                        destructuringNames.add(name);
-                    }
-                } else {
-                    comma.addChildToBack(
-                        destructuringAssignmentHelper(variableType, n,
-                            rightElem,
-                            parser.currentScriptOrFn.getNextTempName()));
-                }
-                index++;
-                empty = false;
-                n = n.getNext();
-            }
-        } else if (type == Token.OBJECTLIT) {
-            int index = 0;
-            Object[] propertyIds = (Object[])
-                left.getProp(Node.OBJECT_IDS_PROP);
-            for (Node n = left.getFirstChild(); n != null; n = n.getNext())
-            {
-                Object id = propertyIds[index];
-                Node rightElem = id instanceof String 
-                    ? new Node(Token.GETPROP,
-                        createName(tempName), 
-                        createString((String)id))
-                    : new Node(Token.GETELEM,
-                        createName(tempName), 
-                        createNumber(((Number)id).intValue()));
-                if (n.getType() == Token.NAME) {
-                    String name = n.getString();
-                    comma.addChildToBack(new Node(setOp, 
-                        createName(Token.BINDNAME, name, null),
-                        rightElem));
-                    if (variableType != -1) {
-                        parser.defineSymbol(variableType, true, name);
-                        destructuringNames.add(name);
-                    }
-                } else {
-                    comma.addChildToBack(
-                        destructuringAssignmentHelper(variableType, n,
-                            rightElem,
-                            parser.currentScriptOrFn.getNextTempName()));
-                }
-                index++;
-                empty = false;
-            }
-        } else if (type == Token.GETPROP || type == Token.GETELEM) {
-            comma.addChildToBack(simpleAssignment(left, createName(tempName)));
-        } else {
-            parser.reportError("msg.bad.assign.left");
-        }
-        if (empty) {
-            // Don't want a COMMA node with no children. Just add a zero.
-            comma.addChildToBack(createNumber(0));
-        }
-        result.putProp(Node.DESTRUCTURING_NAMES, destructuringNames);
-        return result;
     }
 
     Node createUseLocal(Node localBlock)
@@ -1557,6 +1361,30 @@ final class IRFactory
         }
         return 0;
     }
+
+// Commented-out: no longer used    
+//     private static boolean hasSideEffects(Node exprTree)
+//     {
+//         switch (exprTree.getType()) {
+//           case Token.INC:
+//           case Token.DEC:
+//           case Token.SETPROP:
+//           case Token.SETELEM:
+//           case Token.SETNAME:
+//           case Token.CALL:
+//           case Token.NEW:
+//             return true;
+//           default:
+//             Node child = exprTree.getFirstChild();
+//             while (child != null) {
+//                 if (hasSideEffects(child))
+//                     return true;
+//                 child = child.getNext();
+//             }
+//             break;
+//         }
+//         return false;
+//     }
     
     private void checkActivationName(String name, int token)
     {
@@ -1564,7 +1392,7 @@ final class IRFactory
             boolean activation = false;
             if ("arguments".equals(name)
                 || (parser.compilerEnv.activationNames != null
-                    && parser.compilerEnv.activationNames.contains(name)))
+                    && parser.compilerEnv.activationNames.containsKey(name)))
             {
                 activation = true;
             } else if ("length".equals(name)) {
@@ -1589,13 +1417,6 @@ final class IRFactory
         }
     }
 
-    private void setIsGenerator()
-    {
-        if (parser.insideFunction()) {
-            ((FunctionNode)parser.currentScriptOrFn).itsIsGenerator = true;
-        }
-    }
-
     private Parser parser;
 
     private static final int LOOP_DO_WHILE = 0;
@@ -1605,3 +1426,4 @@ final class IRFactory
     private static final int ALWAYS_TRUE_BOOLEAN = 1;
     private static final int ALWAYS_FALSE_BOOLEAN = -1;
 }
+

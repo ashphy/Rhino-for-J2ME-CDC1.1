@@ -38,8 +38,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 package org.mozilla.javascript;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 public class FunctionNode extends ScriptOrFnNode {
 
@@ -59,30 +57,6 @@ public class FunctionNode extends ScriptOrFnNode {
     public boolean getIgnoreDynamicScope() {
         return itsIgnoreDynamicScope;
     }
-    
-    public boolean isGenerator() {
-      return itsIsGenerator;
-    }
-
-    public void addResumptionPoint(Node target) {
-        if (generatorResumePoints == null)
-            generatorResumePoints = new ArrayList<Node>();
-        generatorResumePoints.add(target);
-    }
-
-    public ArrayList<Node> getResumptionPoints() {
-        return generatorResumePoints;
-    }
-
-    public HashMap<Node,int[]> getLiveLocals() {
-        return liveLocals;
-    }
-
-    public void addLiveLocals(Node node, int[] locals) {
-        if (liveLocals == null)
-            liveLocals = new HashMap<Node,int[]>();
-        liveLocals.put(node, locals);
-    }
 
     /**
      * There are three types of functions that can be defined. The first
@@ -97,7 +71,7 @@ public class FunctionNode extends ScriptOrFnNode {
      * top-level expression in an expression statement.
      *
      * The three types of functions have different treatment and must be
-     * distinguished.
+     * distinquished.
      */
     public static final int FUNCTION_STATEMENT            = 1;
     public static final int FUNCTION_EXPRESSION           = 2;
@@ -108,10 +82,7 @@ public class FunctionNode extends ScriptOrFnNode {
     }
 
     String functionName;
-    int itsFunctionType;
     boolean itsNeedsActivation;
+    int itsFunctionType;
     boolean itsIgnoreDynamicScope;
-    boolean itsIsGenerator;
-    ArrayList<Node> generatorResumePoints;
-    HashMap<Node,int[]> liveLocals;
 }

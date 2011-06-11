@@ -82,7 +82,7 @@ public final class LazilyLoadedCtor implements java.io.Serializable {
                     "Recursive initialization for "+propertyName);
             if (state == STATE_BEFORE_INIT) {
                 state = STATE_INITIALIZING;
-                // Set value now to have something to set in finally block if
+                // Set value now to have something to set in finaly block if
                 // buildValue throws.
                 Object value = Scriptable.NOT_FOUND;
                 try {
@@ -104,15 +104,12 @@ public final class LazilyLoadedCtor implements java.io.Serializable {
 
     private Object buildValue()
     {
-        Class<? extends Scriptable> cl = cast(Kit.classOrNull(className));
+        Class cl = Kit.classOrNull(className);
         if (cl != null) {
             try {
                 Object value = ScriptableObject.buildClassCtor(scope, cl,
                                                                sealed, false);
-                if (value != null) {
-                    return value;
-                }
-                else {
+                if (value == null) {
                     // cl has own static initializer which is expected
                     // to set the property on its own.
                     value = scope.get(propertyName, scope);
@@ -131,11 +128,6 @@ public final class LazilyLoadedCtor implements java.io.Serializable {
             }
         }
         return Scriptable.NOT_FOUND;
-    }
-    
-    @SuppressWarnings({"unchecked"})
-    private Class<? extends Scriptable> cast(Class<?> cl) {
-        return (Class<? extends Scriptable>)cl;
     }
 
 }

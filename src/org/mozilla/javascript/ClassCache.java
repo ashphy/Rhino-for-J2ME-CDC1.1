@@ -23,7 +23,6 @@
  *
  * Contributor(s):
  *   Igor Bukanov, igor@fastmail.fm
- *   Norris Boyd
  *
  * Alternatively, the contents of this file may be used under the terms of
  * the GNU General Public License Version 2 or later (the "GPL"), in which
@@ -39,9 +38,7 @@
 
 package org.mozilla.javascript;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.io.Serializable;
+import java.util.Hashtable;
 
 /**
  * Cache of generated classes and data structures to access Java runtime
@@ -51,14 +48,20 @@ import java.io.Serializable;
  *
  * @since Rhino 1.5 Release 5
  */
-public class ClassCache implements Serializable
+public class ClassCache
 {
-    private static final long serialVersionUID = -8866246036237312215L;
-    private static final Object AKEY = "ClassCache";
+    private static final Object AKEY = new Object();
+
     private volatile boolean cachingIsEnabled = true;
-    private transient HashMap<Class<?>,JavaMembers> classTable;
-    private transient HashMap<JavaAdapter.JavaAdapterSignature,Class<?>> classAdapterCache;
-    private transient HashMap<Class<?>,Object> interfaceAdapterCache;
+
+    Hashtable classTable = new Hashtable();
+
+    Hashtable javaAdapterGeneratedClasses = new Hashtable();
+
+    ScriptableObject scope;
+
+    private Hashtable interfaceAdapterCache;
+
     private int generatedClassSerial;
 
     /**
@@ -76,11 +79,11 @@ public class ClassCache implements Serializable
      */
     public static ClassCache get(Scriptable scope)
     {
-        ClassCache cache = (ClassCache)
-                ScriptableObject.getTopScopeValue(scope, AKEY);
+        ClassCache cache;
+        cache = (ClassCache)ScriptableObject.getTopScopeValue(scope, AKEY);
         if (cache == null) {
-            throw new RuntimeException("Can't find top level scope for " +
-                    "ClassCache.get");
+            // XXX warn somehow about wrong cache usage ?
+            cache = new ClassCache();
         }
         return cache;
     }
@@ -90,7 +93,7 @@ public class ClassCache implements Serializable
      * The ClassCache object can only be associated with the given scope once.
      *
      * @param topScope scope to associate this ClassCache object with.
-     * @return true if no previous ClassCache objects were embedded into
+     * @return true if no prevous ClassCache objects were embedded into
      *         the scope and this ClassCache were successfully associated
      *         or false otherwise.
      *
@@ -102,7 +105,8 @@ public class ClassCache implements Serializable
             // Can only associate cache with top level scope
             throw new IllegalArgumentException();
         }
-        if (this == topScope.associateValue(AKEY, this)) {
+        if(this == topScope.associateValue(AKEY, this)) {
+            scope = topScope;
             return true;
         }
         return false;
@@ -113,8 +117,8 @@ public class ClassCache implements Serializable
      */
     public synchronized void clearCaches()
     {
-        classTable = null;
-        classAdapterCache = null;
+        classTable = new Hashtable();
+        javaAdapterGeneratedClasses = new Hashtable();
         interfaceAdapterCache = null;
     }
 
@@ -153,25 +157,7 @@ public class ClassCache implements Serializable
             clearCaches();
         cachingIsEnabled = enabled;
     }
-    
-    /**
-     * @return a map from classes to associated JavaMembers objects
-     */
-    Map<Class<?>,JavaMembers> getClassCacheMap() {
-        if (classTable == null) {
-            classTable = new HashMap<Class<?>,JavaMembers>();
-        }
-        return classTable;
-    }
-    
-    Map<JavaAdapter.JavaAdapterSignature,Class<?>> getInterfaceAdapterCacheMap()
-    {
-        if (classAdapterCache == null) {
-            classAdapterCache = new HashMap<JavaAdapter.JavaAdapterSignature,Class<?>>();
-        }
-        return classAdapterCache;
-    }
-    
+
     /**
      * @deprecated
      * The method always returns false.
@@ -186,8 +172,8 @@ public class ClassCache implements Serializable
      * @deprecated
      * The method does nothing.
      * Invoker optimization is no longer used by Rhino.
-     * On modern JDK like 1.4 or 1.5 the disadvantages of the optimization
-     * like increased memory usage or longer initialization time overweight
+     * On modern JDK like 1.4 or 1.5 the disadvatages of the optimization
+     * like incresed memory usage or longer initialization time overweight
      * small speed increase that can be gained using generated proxy class
      * to replace reflection.
      */
@@ -204,18 +190,23 @@ public class ClassCache implements Serializable
         return ++generatedClassSerial;
     }
 
-    Object getInterfaceAdapter(Class<?> cl)
+    Object getInterfaceAdapter(Class cl)
     {
-        return interfaceAdapterCache == null 
-                    ? null 
-                    : interfaceAdapterCache.get(cl);
+        Object result;
+        Hashtable cache = interfaceAdapterCache;
+        if (cache == null) {
+            result = null;
+        } else {
+            result = cache.get(cl);
+        }
+        return result;
     }
 
-    synchronized void cacheInterfaceAdapter(Class<?> cl, Object iadapter)
+    synchronized void cacheInterfaceAdapter(Class cl, Object iadapter)
     {
         if (cachingIsEnabled) {
             if (interfaceAdapterCache == null) {
-                interfaceAdapterCache = new HashMap<Class<?>,Object>();
+                interfaceAdapterCache = new Hashtable();
             }
             interfaceAdapterCache.put(cl, iadapter);
         }

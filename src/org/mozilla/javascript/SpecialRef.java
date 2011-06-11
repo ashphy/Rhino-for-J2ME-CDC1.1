@@ -81,7 +81,6 @@ class SpecialRef extends Ref
         return new SpecialRef(target, type, name);
     }
 
-    @Override
     public Object get(Context cx)
     {
         switch (type) {
@@ -96,7 +95,6 @@ class SpecialRef extends Ref
         }
     }
 
-    @Override
     public Object set(Context cx, Object value)
     {
         switch (type) {
@@ -134,7 +132,6 @@ class SpecialRef extends Ref
         }
     }
 
-    @Override
     public boolean has(Context cx)
     {
         if (type == SPECIAL_NONE) {
@@ -143,7 +140,6 @@ class SpecialRef extends Ref
         return true;
     }
 
-    @Override
     public boolean delete(Context cx)
     {
         if (type == SPECIAL_NONE) {

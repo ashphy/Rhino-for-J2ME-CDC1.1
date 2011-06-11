@@ -54,20 +54,15 @@ public abstract class RhinoException extends RuntimeException
 {
     RhinoException()
     {
-        Evaluator e = Context.createInterpreter();
-        if (e != null)
-            e.captureStackInfo(this);
+        Interpreter.captureInterpreterStackInfo(this);
     }
 
     RhinoException(String details)
     {
         super(details);
-        Evaluator e = Context.createInterpreter();
-        if (e != null)
-            e.captureStackInfo(this);
+        Interpreter.captureInterpreterStackInfo(this);
     }
 
-    @Override
     public final String getMessage()
     {
         String details = details();
@@ -104,7 +99,7 @@ public abstract class RhinoException extends RuntimeException
     /**
      * Initialize the uri of the script source containing the error.
      *
-     * @param sourceName the uri of the script source responsible for the error.
+     * @param sourceName the uri of the script source reponsible for the error.
      *                   It should not be <tt>null</tt>.
      *
      * @throws IllegalStateException if the method is called more then once.
@@ -174,7 +169,7 @@ public abstract class RhinoException extends RuntimeException
     /**
      * Initialize the text of the source line containing the error.
      *
-     * @param lineSource the text of the source line responsible for the error.
+     * @param lineSource the text of the source line reponsible for the error.
      *                   It should not be <tt>null</tt>.
      *
      * @throws IllegalStateException if the method is called more then once.
@@ -214,10 +209,7 @@ public abstract class RhinoException extends RuntimeException
         CharArrayWriter writer = new CharArrayWriter();
         super.printStackTrace(new PrintWriter(writer));
         String origStackTrace = writer.toString();
-        Evaluator e = Context.createInterpreter();
-        if (e != null)
-            return e.getPatchedStack(this, origStackTrace);
-        return null;
+        return Interpreter.getPatchedStack(this, origStackTrace);
     }
 
     /**
@@ -247,11 +239,7 @@ public abstract class RhinoException extends RuntimeException
      */
     public String getScriptStackTrace(FilenameFilter filter)
     {
-        List<String> interpreterStack = null;
-        Evaluator interpreter = Context.createInterpreter();
-        if (interpreter != null) {
-            interpreterStack = interpreter.getScriptStack(this);
-        }
+        List interpreterStack = Interpreter.getScriptStack(this);
         int interpreterStackIndex = 0;
         StringBuffer buffer = new StringBuffer();
         String lineSeparator = SecurityUtilities.getSystemProperty("line.separator");
@@ -268,7 +256,6 @@ public abstract class RhinoException extends RuntimeException
                 buffer.append(e.getLineNumber());
                 buffer.append(lineSeparator);
             } else if (interpreterStack != null &&
-                interpreterStack.size() > interpreterStackIndex && 
                 "org.mozilla.javascript.Interpreter".equals(e.getClassName()) &&
                 "interpretLoop".equals(e.getMethodName()))
             {
@@ -278,7 +265,6 @@ public abstract class RhinoException extends RuntimeException
         return buffer.toString();
     }
 
-    @Override
     public void printStackTrace(PrintWriter s)
     {
         if (interpreterStackInfo == null) {
@@ -288,7 +274,6 @@ public abstract class RhinoException extends RuntimeException
         }
     }
 
-    @Override
     public void printStackTrace(PrintStream s)
     {
         if (interpreterStackInfo == null) {

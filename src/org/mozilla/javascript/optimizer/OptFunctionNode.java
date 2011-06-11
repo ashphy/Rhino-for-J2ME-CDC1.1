@@ -123,17 +123,17 @@ final class OptFunctionNode
     {
         int index = n.getIntProp(Node.VARIABLE_PROP, -1);
         if (index == -1) {
-            Node node;
+            String name;
             int type = n.getType();
             if (type == Token.GETVAR) {
-                node = n;
+                name = n.getString();
             } else if (type == Token.SETVAR ||
                        type == Token.SETCONSTVAR) {
-                node = n.getFirstChild();
+                name = n.getFirstChild().getString();
             } else {
                 throw Kit.codeBug();
             }
-            index = fnode.getIndexForNameNode(node);
+            index = fnode.getParamOrVarIndex(name);
             if (index < 0) throw Kit.codeBug();
             n.putIntProp(Node.VARIABLE_PROP, index);
         }

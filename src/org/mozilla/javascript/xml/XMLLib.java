@@ -56,7 +56,6 @@ public abstract class XMLLib
 	public static abstract class Factory {
 		public static Factory create(final String className) {
 			return new Factory() {
-			    @Override
 				public String getImplementationClassName() {
 					return className;
 				}
@@ -70,7 +69,7 @@ public abstract class XMLLib
     {
         ScriptableObject so = ScriptRuntime.getLibraryScopeOrNull(scope);
         if (so == null) {
-            // If library is not yet initialized, return null
+            // If librray is not yet initialized, return null
             return null;
         }
 
@@ -130,44 +129,4 @@ public abstract class XMLLib
      * Construct namespace for default xml statement.
      */
     public abstract Object toDefaultXmlNamespace(Context cx, Object uriValue);
-    
-    public void setIgnoreComments(boolean b) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void setIgnoreWhitespace(boolean b) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void setIgnoreProcessingInstructions(boolean b) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void setPrettyPrinting(boolean b) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void setPrettyIndent(int i) {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean isIgnoreComments() {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean isIgnoreProcessingInstructions() {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean isIgnoreWhitespace() {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean isPrettyPrinting() {
-        throw new UnsupportedOperationException();
-    }
-
-    public int getPrettyIndent() {
-        throw new UnsupportedOperationException();
-    }
 }

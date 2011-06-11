@@ -76,7 +76,7 @@ public class ImporterTopLevel extends IdScriptableObject
 {
     static final long serialVersionUID = -9095380847465315412L;
 
-    private static final Object IMPORTER_TAG = "Importer";
+    private static final Object IMPORTER_TAG = new Object();
 
     public ImporterTopLevel() { }
 
@@ -89,7 +89,6 @@ public class ImporterTopLevel extends IdScriptableObject
         initStandardObjects(cx, sealed);
     }
 
-    @Override
     public String getClassName()
     {
         return (topScopeFlag) ? "global" : "JavaImporter";
@@ -120,13 +119,11 @@ public class ImporterTopLevel extends IdScriptableObject
         delete("constructor");
     }
 
-    @Override
     public boolean has(String name, Scriptable start) {
         return super.has(name, start)
                || getPackageProperty(name, start) != NOT_FOUND;
     }
 
-    @Override
     public Object get(String name, Scriptable start) {
         Object result = super.get(name, start);
         if (result != NOT_FOUND)
@@ -242,7 +239,6 @@ public class ImporterTopLevel extends IdScriptableObject
         put(n, this, cl);
     }
 
-    @Override
     protected void initPrototypeId(int id)
     {
         String s;
@@ -256,7 +252,6 @@ public class ImporterTopLevel extends IdScriptableObject
         initPrototypeMethod(IMPORTER_TAG, id, s, arity);
     }
 
-    @Override
     public Object execIdCall(IdFunctionObject f, Context cx, Scriptable scope,
                              Scriptable thisObj, Object[] args)
     {
@@ -291,7 +286,6 @@ public class ImporterTopLevel extends IdScriptableObject
 
 // #string_id_map#
 
-    @Override
     protected int findPrototypeId(String s)
     {
         int id;

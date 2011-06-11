@@ -75,13 +75,11 @@ final class Arguments extends IdScriptableObject
         }
     }
 
-    @Override
     public String getClassName()
     {
-        return "Object";
+        return "Arguments";
     }
 
-    @Override
     public boolean has(int index, Scriptable start)
     {
         if (0 <= index && index < args.length) {
@@ -92,7 +90,6 @@ final class Arguments extends IdScriptableObject
         return super.has(index, start);
     }
 
-    @Override
     public Object get(int index, Scriptable start)
     {
         if (0 <= index && index < args.length) {
@@ -130,7 +127,6 @@ final class Arguments extends IdScriptableObject
         return false;
     }
 
-    @Override
     public void put(int index, Scriptable start, Object value)
     {
         if (0 <= index && index < args.length) {
@@ -144,7 +140,7 @@ final class Arguments extends IdScriptableObject
                 synchronized (this) {
                     if (args[index] != NOT_FOUND) {
                         if (args == activation.originalArgs) {
-                            args = args.clone();
+                            args = (Object[])args.clone();
                         }
                         args[index] = value;
                         return;
@@ -155,14 +151,13 @@ final class Arguments extends IdScriptableObject
         super.put(index, start, value);
     }
 
-    @Override
     public void delete(int index)
     {
         if (0 <= index && index < args.length) {
             synchronized (this) {
                 if (args[index] != NOT_FOUND) {
                     if (args == activation.originalArgs) {
-                        args = args.clone();
+                        args = (Object[])args.clone();
                     }
                     args[index] = NOT_FOUND;
                     return;
@@ -181,13 +176,11 @@ final class Arguments extends IdScriptableObject
 
         MAX_INSTANCE_ID     = 3;
 
-    @Override
     protected int getMaxInstanceId()
     {
         return MAX_INSTANCE_ID;
     }
 
-    @Override
     protected int findInstanceIdInfo(String s)
     {
         int id;
@@ -220,7 +213,6 @@ final class Arguments extends IdScriptableObject
 
 // #/string_id_map#
 
-    @Override
     protected String getInstanceIdName(int id)
     {
         switch (id) {
@@ -231,7 +223,6 @@ final class Arguments extends IdScriptableObject
         return null;
     }
 
-    @Override
     protected Object getInstanceIdValue(int id)
     {
         switch (id) {
@@ -252,7 +243,6 @@ final class Arguments extends IdScriptableObject
         return super.getInstanceIdValue(id);
     }
 
-    @Override
     protected void setInstanceIdValue(int id, Object value)
     {
         switch (id) {
@@ -265,7 +255,6 @@ final class Arguments extends IdScriptableObject
         super.setInstanceIdValue(id, value);
     }
 
-    @Override
     Object[] getIds(boolean getAll)
     {
         Object[] ids = super.getIds(getAll);

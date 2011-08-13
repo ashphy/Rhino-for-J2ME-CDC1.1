@@ -23,12 +23,17 @@
 	<!-- Make jar file-->
 	<target name="makejar" depends="compile">
 		<echo message="Making jar file" />
-		<jar basedir="bin/" destfile="${ant.project.name}.jar" manifest="${manifestfile}" />
+		<delete dir="${ant.project.name}.jar" />
+		<jar basedir="bin/" destfile="${ant.project.name}.jar" manifest="${manifestfile}">
+		    <fileset dir="bin" includes="." />
+		    <fileset dir="." includes="resources/" />
+		</jar>
 	</target>
 
 	<!-- Make installation zip file -->
 	<target name="makezip" depends="makejar">
 		<echo message="Make installation zip file " />
+		<delete dir="${ant.project.name}.zip" />
 		<zip destfile="${manifestnum}.zip">
 			<fileset dir="." includes="${ant.project.name}.jar" />		<!-- Main jar -->
 			<fileset dir="." includes="${ant.project.name}.dalp" />		<!-- dapl file -->

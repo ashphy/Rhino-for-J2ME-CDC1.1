@@ -24,7 +24,7 @@
     <jar href="./rhino-mfp.jar" version="1.0.1" basepath="current" main="true" />
   </resources>
 
-  <application-desc main-class="jp.naist.ricoh2011jp.mandara.javabeans.HelloXlet" visible="true" />
+  <application-desc main-class="jp.naist.ricoh2011jp.mandara.HelloXlet" visible="true" />
   
   <display-mode size="WVGA" type="COLOR"/>
   <display-mode size="SVGA" type="COLOR"/>

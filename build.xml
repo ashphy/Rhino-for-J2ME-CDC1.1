@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project name="rhino-mfp" default="compile" basedir=".">
+	
+	<!-- Manifest File -->
+	<property name="manifestnum"  value="386077459" />
+	<property name="manifestfile" value="${basedir}/${manifestnum}.mf" />
+	
+	<property name="emu_dist" value="C:\Embedded_Software_Architecture_Emulator_4.13d\cdc-dsdk4\mnt\sd2\sdk\dsdk\dist" />
+	
+	<!-- Compile Project-->
+	<target name="compile">
+		<echo message="Comiling ${ant.project.name}: ${ant.file}"/>
+		<javac debug="true" debuglevel="${debuglevel}" includeAntRuntime="true" destdir="bin" source="${source}" target="${target}">
+			<src path="src"/>
+			<classpath refid="rhino-mfp.classpath"/>
+		</javac>
+		<javac debug="true" debuglevel="${debuglevel}" includeAntRuntime="true" destdir="bin" source="${source}" target="${target}">
+			<src path="test"/>
+			<classpath refid="rhino-mfp.classpath"/>
+		</javac>
+	</target>
+	
+	<!-- Make jar file-->
+	<target name="makejar" depends="compile">
+		<echo message="Making jar file" />
+		<jar basedir="bin/" destfile="${ant.project.name}.jar" manifest="${manifestfile}" />
+	</target>
+
+	<!-- Make installation zip file -->
+	<target name="makezip" depends="makejar">
+		<echo message="Make installation zip file " />
+		<zip destfile="${manifestnum}.zip">
+			<fileset dir="." includes="${ant.project.name}.jar" />		<!-- Main jar -->
+			<fileset dir="." includes="${ant.project.name}.dalp" />		<!-- dapl file -->
+		</zip>
+	</target>
+
+	<!-- Deploy for emulator -->
+	<target name="deployemulator" depends="makezip">
+		<echo message="Deploying emulator" />
+
+		<!-- Delete existing project dir -->
+		<delete dir="${emu_dist}/${manifestnum}" />
+		
+		<!-- Copy project -->
+		<copy file="${manifestnum}.zip" todir="${emu_dist}" />
+		
+		<!-- Unzip project-->
+		<unzip src="${emu_dist}/${manifestnum}.zip" dest="${emu_dist}/${manifestnum}" />
+		
+		<!-- Clear-->
+		<delete file="${emu_dist}/${manifestnum}.zip" />
+	</target>
+	
+	<!-- install-->
+	<target name="install" depends="compile">
+		<!-- not implemented -->
+	</target>
+</project>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DALP File for Device-SDK Sample Application -->
+
+<dalp spec="2.0" version="1.00">
+
+  <information>
+    <product-id>386077459</product-id>
+    <title>Rhino for MFP</title>
+    <vendor>Team MANDARA</vendor>
+    <description>Rhino for MFP</description>
+    <description type="detail">Rhino Impl for MFP</description>
+    <telephone>090-7295-8338</telephone>
+    <e-mail>kazuki-h@is.naist.jp</e-mail>
+    <application-ver>0.01</application-ver>
+    <offline-allowed/>
+  </information>
+
+  <security>
+    <all-permissions/>
+  </security>
+
+  <resources>
+    <dsdk version="2.0"/>
+    <jar href="./rhino-mfp.jar" version="1.0.1" basepath="current" main="true" />
+  </resources>
+
+  <application-desc main-class="jp.naist.ricoh2011jp.mandara.javabeans.HelloXlet" visible="true" />
+  
+  <display-mode size="WVGA" type="COLOR"/>
+  <display-mode size="SVGA" type="COLOR"/>
+
+  <install mode="manual" destination="sdcard"/>
+</dalp>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <jardesc>
-    <jar path="C:/Users/sd-ashphy/Desktop/rhino-mfp-20110814.jar"/>
+    <jar path="C:/Users/kazuki-h/Desktop/rhino-mfp-20110814.jar"/>
     <options buildIfNeeded="true" compress="true" descriptionLocation="/rhino-mfp/jar-build.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
     <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
     <selectedProjects/>
@@ -12,6 +12,5 @@
     </manifest>
     <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
         <javaElement handleIdentifier="=rhino-mfp/src"/>
-        <folder path="/rhino-mfp/resources"/>
     </selectedElements>
 </jardesc>
